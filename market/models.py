@@ -26,6 +26,15 @@ class Product(models.Model):
         self.inventory -= amount
         self.save()
 
+    def jsonified(self):
+        return {
+            'id': self.id,
+            'code': self.code,
+            'name': self.name,
+            'price': self.price,
+            'inventory': self.inventory
+        }
+
 
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='کاربر')
