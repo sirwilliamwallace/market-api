@@ -6,6 +6,7 @@
     DO NOT FORGET to complete url patterns in market/urls.py
 """
 import json
+from sqlite3 import IntegrityError
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, get_list_or_404
@@ -86,25 +87,62 @@ def product_list(request):
 
 
 def product_detail(request, product_id):
-        context = {}
-        if request.method != 'GET':
-            context['message'] = 'Invalid request method'
-            res = JsonResponse(context, status=400, safe=False)
-            return res
-        else:
-            try:
-                product = Product.objects.get(pk=product_id)
-                if product is None:
-                    context['message'] = 'Product not found'
-                    res = JsonResponse(context, status=404, safe=False)
-                    return res
-                context['product'] = product.jsonified()
-                res = JsonResponse(context['product'], status=200, safe=False)
-                return res
-            except Product.DoesNotExist as e:
+    context = {}
+    if request.method != 'GET':
+        context['message'] = 'Invalid request method'
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    else:
+        try:
+            product = Product.objects.get(pk=product_id)
+            if product is None:
                 context['message'] = 'Product not found'
                 res = JsonResponse(context, status=404, safe=False)
                 return res
+            context['product'] = product.jsonified()
+            res = JsonResponse(context['product'], status=200, safe=False)
+            return res
+        except Product.DoesNotExist as e:
+            context['message'] = 'Product not found'
+            res = JsonResponse(context, status=404, safe=False)
+            return res
 
 
-# TODO: Implement and product_update
+def edit_inventory(request, product_id):
+    context = {}
+    try:
+        product = Product.objects.get(pk=product_id)
+    except Product.DoesNotExist as e:
+        context['message'] = 'Product not found'
+        res = JsonResponse(context, status=404, safe=False)
+        return res
+    if request.method != 'POST':
+        context["message"] = "Invalid request method"
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        inventory = int(data.get('amount'))
+        print(inventory < 0)
+        if inventory is None:
+            context['message'] = 'None inventory value received'
+            res = JsonResponse(context, status=400, safe=False)
+            return res
+        elif inventory < 0:
+            product.decrease_inventory(inventory * -1)
+            context['product'] = product.jsonified()
+            res = JsonResponse(context['product'], status=200, safe=False)
+            return res
+        elif inventory > 0:
+            product.increase_inventory(inventory)
+            context['product'] = product.jsonified()
+            res = JsonResponse(context['product'], status=200, safe=False)
+            return res
+        else:
+            context['message'] = 'Invalid inventory value'
+            res = JsonResponse(context, status=400, safe=False)
+            return res
+    except ValueError as e:
+        context['message'] = f'Invalid data received {e}'
+        res = JsonResponse(context, status=400, safe=False)
+        return res

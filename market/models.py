@@ -12,7 +12,7 @@ class Product(models.Model):
         """
         Increase the inventory of the product by the given amount.
         """
-        if amount < 1:
+        if amount < 0:
             raise ValueError('amount must be greater than 0')
         self.inventory += amount
         self.save()
@@ -21,8 +21,10 @@ class Product(models.Model):
         """
         Decrease the inventory of the product by the given amount.
         """
-        if amount < 1:
+        if amount < 0:
             raise ValueError('amount must be greater than 0')
+        elif amount > self.inventory:
+            raise ValueError('not enough inventory')
         self.inventory -= amount
         self.save()
 
