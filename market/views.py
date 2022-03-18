@@ -66,6 +66,20 @@ def product_insert(request):
         # DEBUG
         res = JsonResponse(context, status=400, safe=False)
         context['message'] = f'Invalid data received {res} '
-        print (res)
+        print(res)
         return res
 
+
+def product_list(request):
+    context = {}
+    if request.method != 'GET':
+        context['message'] = 'Invalid request method'
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    else:
+        products = Product.objects.all()
+
+        context['products'] = [product.jsonified() for product in products]
+        res = JsonResponse(context, status=200, safe=False)
+        return res
+# TODO: Implement product_list and search_product and product_detail and product_update and product_delete
