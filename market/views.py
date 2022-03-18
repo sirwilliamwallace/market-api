@@ -8,8 +8,7 @@
 import json
 
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-
+from django.shortcuts import get_object_or_404, get_list_or_404
 from .models import Product
 
 
@@ -53,10 +52,6 @@ def product_insert(request):
                 res = JsonResponse(context, status=201, safe=False)
                 print(res)
                 return res
-            product.save()
-            context['message'] = 'Product inserted successfully'
-            res = JsonResponse(context, status=201, safe=False)
-            return res
         except Exception as e:
             context['message'] = 'Invalid data received {}'.format(e)
             res = JsonResponse(context, status=400, safe=False)
@@ -76,10 +71,40 @@ def product_list(request):
         context['message'] = 'Invalid request method'
         res = JsonResponse(context, status=400, safe=False)
         return res
+    elif request.GET.get('search'):
+        search = request.GET['search']
+        products = Product.objects.filterQ(name__icontains=search)
+        context['products'] = [product.jsonified() for product in products]
+        res = JsonResponse(context, status=200, safe=False)
+        return res
     else:
         products = Product.objects.all()
 
         context['products'] = [product.jsonified() for product in products]
         res = JsonResponse(context, status=200, safe=False)
         return res
-# TODO: Implement product_list and search_product and product_detail and product_update and product_delete
+
+
+def product_detail(request, product_id):
+        context = {}
+        if request.method != 'GET':
+            context['message'] = 'Invalid request method'
+            res = JsonResponse(context, status=400, safe=False)
+            return res
+        else:
+            try:
+                product = Product.objects.get(pk=product_id)
+                if product is None:
+                    context['message'] = 'Product not found'
+                    res = JsonResponse(context, status=404, safe=False)
+                    return res
+                context['product'] = product.jsonified()
+                res = JsonResponse(context['product'], status=200, safe=False)
+                return res
+            except Product.DoesNotExist as e:
+                context['message'] = 'Product not found'
+                res = JsonResponse(context, status=404, safe=False)
+                return res
+
+
+# TODO: Implement and product_update
