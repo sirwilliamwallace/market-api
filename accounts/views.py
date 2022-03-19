@@ -175,4 +175,21 @@ def logout_customer(request):
             context = {'message': 'You are not logged in.'}
             res = JsonResponse(context, status=403, safe=False)
             return res
+
+
+def customer_profile(request):
+    if request.method != 'GET':
+        context = {'message': 'Invalid request method'}
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    else:
+        if request.user.is_authenticated:
+            customer = Customer.objects.get(user=request.user)
+            context = {'customer': customer.jsonified()}
+            res = JsonResponse(context['customer'], status=200, safe=False)
+            return res
+        else:
+            context = {'message': 'You are not logged in.'}
+            res = JsonResponse(context, status=403, safe=False)
+            return res
 # TODO: view customer profile
