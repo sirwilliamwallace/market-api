@@ -29,8 +29,6 @@ class Product(models.Model):
         self.inventory -= amount
         self.save()
 
-
-
     def jsonified(self):
         return {
             'id': self.id,
@@ -83,6 +81,13 @@ class OrderRow(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='محصول')
     order = models.ForeignKey('Order', on_delete=models.CASCADE, verbose_name='سفارش')
     amount = models.PositiveIntegerField(verbose_name='تعداد')
+
+    def jsonified(self):
+        return {
+            'id': self.id,
+            'product': self.product.jsonified(),
+            'amount': self.amount
+        }
 
 
 class Order(models.Model):
@@ -162,3 +167,10 @@ class Order(models.Model):
             raise ValueError('order is not in submitted status')
         self.status = Order.STATUS_SENT
         self.save()
+
+    def jsonified(self):
+        rows = OrderRow.objects.filter(order=self)
+        return {
+            'total_price': self.total_price,
+            'items': [order_row.jsonified() for order_row in rows]
+        }

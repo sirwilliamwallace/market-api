@@ -10,7 +10,7 @@ from sqlite3 import IntegrityError
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, get_list_or_404
-from .models import Product
+from .models import Product, Order, OrderRow
 
 
 def product_insert(request):
@@ -144,5 +144,125 @@ def edit_inventory(request, product_id):
             return res
     except ValueError as e:
         context['message'] = f'Invalid data received {e}'
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+
+
+def shopping_cart(request):
+    context = {}
+    if request.method != 'GET':
+        context['message'] = 'Invalid request method'
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    if request.user.is_authenticated and request.user.is_active:
+        order = Order.initiate(request.user.customer)
+        context = order.jsonified()
+        res = JsonResponse(context, status=200, safe=False)
+        return res
+    else:
+        context['message'] = 'You are not logged in.'
+        res = JsonResponse(context, status=403, safe=False)
+        return res
+
+
+def add_to_cart(request):
+    if request.method != 'POST':
+        return JsonResponse({'message': 'Wrong method.'}, status=404, safe=False)
+    try:
+        if request.user.is_authenticated and request.user.is_active:
+            data = json.loads(request.body)
+            order = Order.initiate(request.user.customer)
+            errors = []
+            for item in data:
+                try:
+                    if Product.objects.filter(code=item['code']).exists():
+                        product = Product.objects.get(code=item.get('code'))
+                        amount = int(item.get('amount'))
+                        order.add_product(product, amount)
+                except Exception as e:
+                    errors.append({'code': item['code'], 'message': str(e)})
+            if errors:
+                context = {'errors': errors}
+                res = JsonResponse(context, status=400, safe=False)
+                return res
+            context = order.jsonified()
+            res = JsonResponse(context, status=200, safe=False)
+            return res
+        else:
+            context = {'message': 'You are not logged in.'}
+            res = JsonResponse(context, status=403, safe=False)
+            return res
+    except Exception as e:
+        context = {'message': str(e)}
+        res = JsonResponse(context, status=404)
+        return res
+
+
+def remove_from_cart(request):
+    context = {}
+    if request.method != 'POST':
+        return JsonResponse({'message': 'Wrong Method'}, status=404)
+    try:
+        if request.user.is_authenticated and request.user.is_active:
+            data = json.loads(request.body)
+            order = Order.initiate(request.user.customer)
+            errors = []
+            for item in data:
+                try:
+                    if Product.objects.filter(code=item.get('code')).exists():
+                        if 'amount' not in item:
+                            item['amount'] = None
+                        product = Product.objects.get(code=item.get('code'))
+                        amount = item.get('amount')
+                        try:
+                            order.remove_product(product, amount)
+                        except OrderRow.DoesNotExist as e:
+                            errors.append({'code': item['code'], 'message': 'Does not exist in cart'})
+                except Exception as e:
+                    errors.append({'code': item['code'], 'message': str(e)})
+            if errors:
+                context = {'errors': errors}
+                res = JsonResponse(context, status=400, safe=False)
+                return res
+            else:
+                context = order.jsonified()
+                res = JsonResponse(context, status=400)
+                return res
+        else:
+            context['message'] = 'You are not logged in.'
+            res = JsonResponse(context, status=403)
+            return res
+    except Exception as e:
+        context['message'] = str(e)
+        res = JsonResponse(context, status=400)
+        return res
+
+
+def submit_cart(request):
+    context = {}
+    if request.method != 'POST':
+        context['message'] = 'Wrong method'
+        res = JsonResponse(context, status=404, safe=False)
+        return res
+    try:
+        if request.user.is_authenticated and request.user.is_active:
+
+            data = json.loads(request.body)
+            order = Order.initiate(request.user.customer)
+            try:
+                order.submit()
+            except Exception as e:
+                context['message'] = str(e)
+                res = JsonResponse(context, status=400, safe=False)
+                return res
+            context = order.jsonified()
+            res = JsonResponse(context['items'], status=200, safe=False)
+            return res
+        else:
+            context['message'] = 'You are not logged in.'
+            res = JsonResponse(context, status=403, safe=False)
+            return res
+    except Exception as e:
+        context['message'] = str(e)
         res = JsonResponse(context, status=400, safe=False)
         return res
