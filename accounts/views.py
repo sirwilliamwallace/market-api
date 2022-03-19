@@ -5,6 +5,7 @@ from sqlite3 import IntegrityError
 from django.http import JsonResponse
 import json
 from market.models import Customer
+from django.contrib.auth import authenticate, login, logout
 
 
 # Create your views here.
@@ -86,7 +87,6 @@ def customer_detail(request, customer_id):
             return res
 
 
-# TODO: customer edit, login and logout, view customer profile
 def customer_edit(request, customer_id):
     context = {}
     if request.method != 'POST':
@@ -103,7 +103,7 @@ def customer_edit(request, customer_id):
             data = json.loads(request.body)
             if data.get('id') or data.get('username') or data.get('password'):
                 context["message"] = "Cannot edit customer's identity and credentials."
-                res = JsonResponse(context, status=400, safe=False)
+                res = JsonResponse(context, status=403, safe=False)
                 return res
             # if data  is non its ok
             for key, value in data.items():
@@ -133,3 +133,46 @@ def customer_edit(request, customer_id):
             context['message'] = str(e)
             res = JsonResponse(context, status=400, safe=False)
             return res
+
+
+def login_customer(request):
+    if request.method != 'POST':
+        context = {'message': 'Invalid request method'}
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    else:
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+        if username is None or password is None:
+            context = {'message': 'Invalid data received'}
+            res = JsonResponse(context, status=400, safe=False)
+            return res
+        user = authenticate(username=username, password=password)
+        if user is None:
+            context = {'message': 'Username or Password is incorrect.'}
+            res = JsonResponse(context, status=404, safe=False)
+            return res
+        else:
+            login(request, user)
+            context = {'message': 'You are logged in successfully.'}
+            res = JsonResponse(context, status=200, safe=False)
+            return res
+
+
+def logout_customer(request):
+    if request.method != 'POST':
+        context = {'message': 'Invalid request method'}
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    else:
+        if request.user.is_authenticated:
+            logout(request)
+            context = {'message': 'You are logged out successfully.'}
+            res = JsonResponse(context, status=200, safe=False)
+            return res
+        else:
+            context = {'message': 'You are not logged in.'}
+            res = JsonResponse(context, status=403, safe=False)
+            return res
+# TODO: view customer profile
