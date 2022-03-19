@@ -192,4 +192,4 @@ def customer_profile(request):
             context = {'message': 'You are not logged in.'}
             res = JsonResponse(context, status=403, safe=False)
             return res
-# TODO: view customer profile
+
