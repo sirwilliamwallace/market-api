@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 
 class Product(models.Model):
@@ -28,6 +29,8 @@ class Product(models.Model):
         self.inventory -= amount
         self.save()
 
+
+
     def jsonified(self):
         return {
             'id': self.id,
@@ -44,6 +47,18 @@ class Customer(models.Model):
     address = models.TextField(verbose_name='آدرس')
     balance = models.PositiveIntegerField(default=20000,
                                           verbose_name='مانده حساب')  # default is 20000 as a bonus to customers
+
+    def jsonified(self):
+        return {
+            'id': self.id,
+            'username': self.user.username,
+            'first_name': self.user.first_name,
+            'last_name': self.user.last_name,
+            'email': self.user.email,
+            'phone': self.phone,
+            'address': self.address,
+            'balance': self.balance
+        }
 
     def deposit(self, amount):
         """

@@ -74,7 +74,7 @@ def product_list(request):
         return res
     elif request.GET.get('search'):
         search = request.GET['search']
-        products = Product.objects.filterQ(name__icontains=search)
+        products = Product.objects.filter(name__icontains=search)
         context['products'] = [product.jsonified() for product in products]
         res = JsonResponse(context, status=200, safe=False)
         return res
