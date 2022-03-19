@@ -85,4 +85,51 @@ def customer_detail(request, customer_id):
             res = JsonResponse(context, status=404, safe=False)
             return res
 
-# TODO: customer details, customer edit, login and logout, view customer profile
+
+# TODO: customer edit, login and logout, view customer profile
+def customer_edit(request, customer_id):
+    context = {}
+    if request.method != 'POST':
+        context['message'] = 'Invalid request method'
+        res = JsonResponse(context, status=400, safe=False)
+        return res
+    else:
+        try:
+            customer = Customer.objects.get(pk=customer_id)
+            if customer is None:
+                context['message'] = 'Customer not found'
+                res = JsonResponse(context, status=404, safe=False)
+                return res
+            data = json.loads(request.body)
+            if data.get('id') or data.get('username') or data.get('password'):
+                context["message"] = "Cannot edit customer's identity and credentials."
+                res = JsonResponse(context, status=400, safe=False)
+                return res
+            # if data  is non its ok
+            for key, value in data.items():
+                if key == 'phone':
+                    customer.phone = value
+                elif key == 'address':
+                    customer.address = value
+                elif key == 'first_name':
+                    customer.user.first_name = value
+                elif key == 'last_name':
+                    customer.user.last_name = value
+                elif key == 'email':
+                    customer.user.email = value
+            customer.save()
+            context['customers'] = customer.jsonified()
+            res = JsonResponse(context['customers'], status=200, safe=False)
+            return res
+        except Customer.DoesNotExist as e:
+            context['message'] = 'Customer not found'
+            res = JsonResponse(context, status=404, safe=False)
+            return res
+        except ValueError as e:
+            context['message'] = 'Invalid data received'
+            res = JsonResponse(context, status=400, safe=False)
+            return res
+        except Exception as e:
+            context['message'] = str(e)
+            res = JsonResponse(context, status=400, safe=False)
+            return res
